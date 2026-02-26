@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Class IX Mark Tabulation - PRO</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 13px;
+        }
+
+        th,
+        td {
+            border: 1px solid #999;
+            padding: 5px;
+            text-align: center;
+        }
+
+        input {
+            width: 55px;
+        }
+
+        .best {
+            background-color: #b6fcb6;
+        }
+
+        .subject-header {
+            background-color: #e6e6e6;
+            font-weight: bold;
+        }
+
+        .error-input {
+            border: 2px solid red !important;
+        }
+
+        button {
+            margin: 5px;
+            padding: 8px 15px;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .table-container::-webkit-scrollbar {
+            height: 10px;
+        }
+
+        #markTable {
+            min-width: max-content;
+            /* force horizontal scroll */
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                margin: 5mm;
+                zoom: 70%;
+                /* slightly smaller for 21 columns */
+            }
+
+            .table-container {
+                overflow: visible !important;
+            }
+
+            #markTable {
+                min-width: unset !important;
+                /* VERY IMPORTANT */
+                width: 100% !important;
+                table-layout: fixed !important;
+            }
+
+            th,
+            td {
+                padding: 2px !important;
+                font-size: 9px !important;
+                word-wrap: break-word;
+            }
+
+            input {
+                width: 35px !important;
+                font-size: 9px !important;
+                border: none !important;
+                /* cleaner print look */
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Class IX Mark Tabulation & Normalisation</h2>
+    <div class="no-print"> <button onclick="exportJSON()">Export Backup (Safe)</button> <button
+            onclick="importJSON()">Import Backup</button> <button onclick="exportCSV()">Export CSV</button> <button
+            onclick="importCSV()">Import CSV</button> <button onclick="window.print()">Print</button> </div> <br><br>
+    <div class="table-container">
+        <table id="markTable">
+            <thead>
+                <tr>
+                    <th rowspan="2">Candidate</th>
+                    <th colspan="4" class="subject-header">English</th>
+                    <th colspan="4" class="subject-header">Mathematics</th>
+                    <th colspan="4" class="subject-header">Language</th>
+                    <th colspan="4" class="subject-header">Social Science</th>
+                    <th colspan="4" class="subject-header">General Science</th>
+                </tr>
+                <tr>
+                    <th>PT1</th>
+                    <th>PT2</th>
+                    <th>PT3</th>
+                    <th>/5</th>
+                    <th>PT1</th>
+                    <th>PT2</th>
+                    <th>PT3</th>
+                    <th>/5</th>
+                    <th>PT1</th>
+                    <th>PT2</th>
+                    <th>PT3</th>
+                    <th>/5</th>
+                    <th>PT1</th>
+                    <th>PT2</th>
+                    <th>PT3</th>
+                    <th>/5</th>
+                    <th>PT1</th>
+                    <th>PT2</th>
+                    <th>PT3</th>
+                    <th>/5</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+    <script>
+        const subjects = ["English", "Mathematics", "Language", "Social Science", "General Science"];
+        const candidates = Array.from({ length: 20 }, (_, i) => "Candidate " + (i + 1));
+        let data = {};
+
+        function initData() {
+            candidates.forEach(c => {
+                data[c] = {};
+                subjects.forEach(s => {
+                    data[c][s] = { pt1: "", pt2: "", pt3: "" };
+                });
+            });
+        }
+
+        function createTable() {
+            const body = document.getElementById("tableBody");
+            body.innerHTML = "";
+            candidates.forEach((cand) => {
+                let row = document.createElement("tr");
+                let html = `<td>${cand}</td>`;
+                subjects.forEach((sub) => {
+                    html += `<td><input type="number" min="0" max="40" value="${data[cand][sub].pt1}" title="PT1: Enter value between 0-40" onchange="update('${cand}','${sub}','pt1',this, 40)" oninput="validateInput(this, 40)"></td><td><input type="number" min="0" max="80" value="${data[cand][sub].pt2}" title="PT2: Enter value between 0-80" onchange="update('${cand}','${sub}','pt2',this, 80)" oninput="validateInput(this, 80)"></td><td><input type="number" min="0" max="80" value="${data[cand][sub].pt3}" title="PT3: Enter value between 0-80" onchange="update('${cand}','${sub}','pt3',this, 80)" oninput="validateInput(this, 80)"></td><td class="final"></td>`;
+                });
+                row.innerHTML = html;
+                body.appendChild(row);
+                // After row created → calculate & highlight correctly
+                subjects.forEach((sub, subIndex) => {
+                    let finalCellIndex = 1 + (subIndex * 4) + 3;
+                    let finalCell = row.children[finalCellIndex];
+                    finalCell.innerText = calculate(cand, sub, row);
+                });
+            });
+        }
+
+        function update(cand, sub, type, inputElement, maxVal) {
+            let numVal = parseFloat(inputElement.value);
+            // Validate: must be between 0 and maxVal
+            if (isNaN(numVal) || numVal < 0 || numVal > maxVal) {
+                inputElement.classList.add("error-input");
+                inputElement.title = `Error: Enter value between 0-${maxVal}`;
+                if (isNaN(numVal) || numVal < 0) {
+                    numVal = 0;
+                } else if (numVal > maxVal) {
+                    numVal = maxVal;
+                }
+            } else {
+                inputElement.classList.remove("error-input");
+                inputElement.title = `PT${type === 'pt1' ? '1' : type === 'pt2' ? '2' : '3'}: Enter value between 0-${maxVal}`;
+            }
+            data[cand][sub][type] = numVal;
+            save();
+            createTable();
+        }
+
+        function validateInput(inputElement, maxVal) {
+            let numVal = parseFloat(inputElement.value);
+            if (isNaN(numVal) || numVal < 0 || numVal > maxVal) {
+                inputElement.classList.add("error-input");
+                inputElement.title = `Error: Enter value between 0-${maxVal}`;
+            } else {
+                inputElement.classList.remove("error-input");
+            }
+        }
+
+        function calculate(cand, sub, rowElement = null) {
+            let raw1 = data[cand][sub].pt1;
+            let raw2 = data[cand][sub].pt2;
+            let raw3 = data[cand][sub].pt3;
+            // If all empty → return blank (NO highlight)
+            if (!raw1 && !raw2 && !raw3) {
+                return "";
+            }
+            let pt1 = parseFloat(raw1) || 0;
+            let pt2 = parseFloat(raw2) || 0;
+            let pt3 = parseFloat(raw3) || 0;
+            let n1 = (pt1 / 40) * 80;
+            let exams = [
+                { value: n1, type: "pt1" },
+                { value: pt2, type: "pt2" },
+                { value: pt3, type: "pt3" }
+            ];
+            exams.sort((a, b) => b.value - a.value);
+            let avg = (exams[0].value + exams[1].value) / 2;
+            let finalVal = ((avg / 80) * 5).toFixed(3);
+            if (rowElement) {
+                let subjectIndex = subjects.indexOf(sub);
+                let tdStart = 1 + (subjectIndex * 4);
+                let pt1Input = rowElement.children[tdStart].querySelector("input");
+                let pt2Input = rowElement.children[tdStart + 1].querySelector("input");
+                let pt3Input = rowElement.children[tdStart + 2].querySelector("input");
+                // Clear highlight
+                pt1Input.classList.remove("best");
+                pt2Input.classList.remove("best");
+                pt3Input.classList.remove("best");
+                // Only highlight if at least one real mark exists
+                if (raw1 || raw2 || raw3) {
+                    exams.slice(0, 2).forEach(exam => {
+                        if (exam.type === "pt1") pt1Input.classList.add("best");
+                        if (exam.type === "pt2") pt2Input.classList.add("best");
+                        if (exam.type === "pt3") pt3Input.classList.add("best");
+                    });
+                }
+            }
+            return finalVal;
+        }
+
+        function save() {
+            localStorage.setItem("class9Data", JSON.stringify(data));
+        }
+
+        function load() {
+            let saved = localStorage.getItem("class9Data");
+            if (saved) {
+                data = JSON.parse(saved);
+            } else {
+                initData();
+            }
+        }
+
+        function exportJSON() {
+            let blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+            let a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "Class9Backup.json";
+            a.click();
+        }
+
+        function importJSON() {
+            let input = document.createElement("input");
+            input.type = "file";
+            input.onchange = e => {
+                let file = e.target.files[0];
+                let reader = new FileReader();
+                reader.onload = () => {
+                    data = JSON.parse(reader.result);
+                    save();
+                    createTable();
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function exportCSV() {
+            let rows = [];
+            let header = ["Candidate"];
+            subjects.forEach(s => {
+                header.push(s + " PT1", s + " PT2", s + " PT3", s + " /5");
+            });
+            rows.push(header.join(","));
+            candidates.forEach(c => {
+                let row = [c];
+                subjects.forEach(s => {
+                    row.push(data[c][s].pt1, data[c][s].pt2, data[c][s].pt3, calculate(c, s));
+                });
+                rows.push(row.join(","));
+            });
+            let blob = new Blob([rows.join("\n")], { type: "text/csv" });
+            let a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "Class9Marks.csv";
+            a.click();
+        }
+
+        function importCSV() {
+            let input = document.createElement("input");
+            input.type = "file";
+            input.onchange = e => {
+                let reader = new FileReader();
+                reader.onload = () => {
+                    let lines = reader.result.split("\n");
+                    lines.slice(1).forEach(line => {
+                        let cols = line.split(",");
+                        let cand = cols[0];
+                        if (data[cand]) {
+                            let index = 1;
+                            subjects.forEach(s => {
+                                data[cand][s].pt1 = cols[index++];
+                                data[cand][s].pt2 = cols[index++];
+                                data[cand][s].pt3 = cols[index++];
+                                index++;
+                            });
+                        }
+                    });
+                    save();
+                    createTable();
+                };
+                reader.readAsText(e.target.files[0]);
+            };
+            input.click();
+        }
+
+        load();
+        createTable();
+    </script>
+</body>
+
+</html> 
