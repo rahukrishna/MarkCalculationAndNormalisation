@@ -833,6 +833,23 @@ function importCSV(){
                 columnMap[normalized] = index;
             });
 
+            // derive subject order from CSV headers (by reading prefixes before PT1/PT2/PT3,/5 etc.)
+            let csvSubjects = [];
+            headers.forEach(h => {
+                let match = h.match(/^(.*?)\s+(?:pt1|pt2|pt3|\/5|annual|sea|pf|ma|final|grade|rank)/i);
+                if(match){
+                    let name = match[1].trim();
+                    if(name && !csvSubjects.includes(name)) csvSubjects.push(name);
+                }
+            });
+            if(csvSubjects.length && csvSubjects.length === subjects.length) {
+                // only reorder if the header lists all subjects we know
+                console.log("Reordering subjects to match CSV:", csvSubjects);
+                subjects = csvSubjects;
+            } else if(csvSubjects.length){
+                console.log("CSV subjects detected:", csvSubjects, "(not applied)");
+            }
+
             console.log("Column Map:", columnMap);
             console.log("Headers:", headers);
 
