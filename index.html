@@ -1,344 +1,961 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>Class IX Mark Tabulation - PRO</title>
-    <style>
-        body {
-            font-family: Arial;
-            padding: 20px;
-        }
+<title>Class IX Mark Tabulation - PRO</title>
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            font-size: 13px;
-        }
+<style>
+body { font-family: Arial; padding: 20px; }
 
-        th,
-        td {
-            border: 1px solid #999;
-            padding: 5px;
-            text-align: center;
-        }
+.container { max-width: 1600px; margin: 0 auto; }
 
-        input {
-            width: 55px;
-        }
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+}
 
-        .best {
-            background-color: #b6fcb6;
-        }
+.progress-section {
+    flex: 1;
+    min-width: 200px;
+}
 
-        .subject-header {
-            background-color: #e6e6e6;
-            font-weight: bold;
-        }
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+}
 
-        .error-input {
-            border: 2px solid red !important;
-        }
+.progress-fill {
+    height: 100%;
+    background: #4caf50;
+    width: 0%;
+    transition: width 0.3s ease;
+}
 
-        button {
-            margin: 5px;
-            padding: 8px 15px;
-        }
+.progress-text {
+    font-size: 12px;
+    margin-top: 4px;
+    color: #333;
+}
 
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-        }
+.info-section {
+    font-size: 12px;
+    color: #666;
+    text-align: right;
+}
 
-        .table-container::-webkit-scrollbar {
-            height: 10px;
-        }
+.help-toggle {
+    cursor: pointer;
+    padding: 6px 12px;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+}
 
-        #markTable {
-            min-width: max-content;
-            /* force horizontal scroll */
-        }
+.help-panel {
+    display: none;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 15px;
+    font-size: 13px;
+    line-height: 1.6;
+}
 
-        @page {
-            size: A4 landscape;
-            margin: 10mm;
-        }
+.help-panel.show {
+    display: block;
+}
 
-        @media print {
-            .no-print {
-                display: none !important;
-            }
+.help-panel h3 {
+    margin-top: 0;
+    color: #2196F3;
+}
 
-            body {
-                margin: 5mm;
-                zoom: 70%;
-                /* slightly smaller for 21 columns */
-            }
+.help-panel ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
 
-            .table-container {
-                overflow: visible !important;
-            }
+.stats-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 15px;
+    font-size: 12px;
+}
 
-            #markTable {
-                min-width: unset !important;
-                /* VERY IMPORTANT */
-                width: 100% !important;
-                table-layout: fixed !important;
-            }
+.stat-box {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 4px;
+}
 
-            th,
-            td {
-                padding: 2px !important;
-                font-size: 9px !important;
-                word-wrap: break-word;
-            }
+.stat-label {
+    font-weight: bold;
+    color: #2196F3;
+}
 
-            input {
-                width: 35px !important;
-                font-size: 9px !important;
-                border: none !important;
-                /* cleaner print look */
-            }
-        }
-    </style>
+.table-container { width:100%; overflow-x:auto; }
+
+table {
+    border-collapse: collapse;
+    width:100%;
+    /* allow automatic layout for better width distribution */
+    font-size:13px;
+}
+
+/* adjust specific column widths via nth-child */
+#markTable th:nth-child(1), #summaryTable th:nth-child(1) {
+    width: 140px; /* slightly wider for candidate names */
+}
+#markTable th:last-child, #markTable td:last-child {
+    width: 100px; /* overall GPA column */
+}
+#markTable th, #markTable td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#markTable td input {
+    width: 45px;
+}
+
+
+th,td {
+    border:1px solid #999;
+    padding:2px 3px;
+    text-align:center;
+}
+
+input { width:55px; }
+
+.best { background:#b6fcb6; }
+
+.subject-header { background:#e6e6e6; font-weight:bold; }
+
+.error-input { border:2px solid red !important; }
+
+/* Grade Color Coding */
+.grade-a1, .grade-a2 { background: #c8e6c9; color: #1b5e20; }
+.grade-b1, .grade-b2 { background: #bbdefb; color: #0d47a1; }
+.grade-c1, .grade-c2 { background: #fff9c4; color: #f57f17; }
+.grade-d { background: #ffe0b2; color: #e65100; }
+.grade-e1, .grade-e2 { background: #ffcdd2; color: #b71c1c; }
+
+button { margin:5px; padding:8px 15px; cursor: pointer; }
+
+.btn-reset {
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+
+.btn-reset:hover {
+    background: #da190b;
+}
+
+.summary-row {
+    background: #f5f5f5;
+    font-weight: bold;
+}
+
+.summary-row td {
+    background: #f5f5f5;
+}
+
+@media print{
+    .no-print{ display:none !important; }
+    body { zoom: 70%; }
+}
+
+@media (max-width: 768px) {
+    body { padding: 10px; }
+    .top-bar { flex-direction: column; align-items: flex-start; }
+    .progress-section { width: 100%; }
+    .info-section { text-align: left; width: 100%; }
+    input { width: 45px; font-size: 12px; }
+    table { font-size: 11px; }
+    th, td { padding: 2px; }
+}
+
+</style>
 </head>
-
 <body>
-    <h2>Class IX Mark Tabulation & Normalisation</h2>
-    <div class="no-print"> <button onclick="exportJSON()">Export Backup (Safe)</button> <button
-            onclick="importJSON()">Import Backup</button> <button onclick="exportCSV()">Export CSV</button> <button
-            onclick="importCSV()">Import CSV</button> <button onclick="window.print()">Print</button> </div> <br><br>
-    <div class="table-container">
-        <table id="markTable">
-            <thead>
-                <tr>
-                    <th rowspan="2">Candidate</th>
-                    <th colspan="4" class="subject-header">English</th>
-                    <th colspan="4" class="subject-header">Mathematics</th>
-                    <th colspan="4" class="subject-header">Language</th>
-                    <th colspan="4" class="subject-header">Social Science</th>
-                    <th colspan="4" class="subject-header">General Science</th>
-                </tr>
-                <tr>
-                    <th>PT1</th>
-                    <th>PT2</th>
-                    <th>PT3</th>
-                    <th>/5</th>
-                    <th>PT1</th>
-                    <th>PT2</th>
-                    <th>PT3</th>
-                    <th>/5</th>
-                    <th>PT1</th>
-                    <th>PT2</th>
-                    <th>PT3</th>
-                    <th>/5</th>
-                    <th>PT1</th>
-                    <th>PT2</th>
-                    <th>PT3</th>
-                    <th>/5</th>
-                    <th>PT1</th>
-                    <th>PT2</th>
-                    <th>PT3</th>
-                    <th>/5</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+
+<h2>Class IX Mark Tabulation & Normalisation</h2>
+
+<div class="no-print">
+    <div class="top-bar">
+        <div class="progress-section">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text">Completion: <span id="progressText">0%</span></div>
+        </div>
+        <div class="info-section">
+            <div>Last Updated: <span id="timestamp">--:--</span></div>
+        </div>
+        <button class="help-toggle no-print" onclick="toggleHelp()">❓ Help</button>
+        <button class="btn-reset no-print" onclick="resetData()">🗑️ Reset Data</button>
+        <button class="no-print" onclick="toggleAdmin()">⚙️ Admin</button>
     </div>
-    <script>
-        const subjects = ["English", "Mathematics", "Language", "Social Science", "General Science"];
-        const candidates = Array.from({ length: 20 }, (_, i) => "Candidate " + (i + 1));
-        let data = {};
 
-        function initData() {
-            candidates.forEach(c => {
-                data[c] = {};
-                subjects.forEach(s => {
-                    data[c][s] = { pt1: "", pt2: "", pt3: "" };
-                });
-            });
-        }
+    <div class="help-panel" id="helpPanel">
+        <h3>How to Use</h3>
+        <ul>
+            <li><strong>PT1 (0-40):</strong> Periodic Test 1 marks</li>
+            <li><strong>PT2 (0-80):</strong> Periodic Test 2 marks</li>
+            <li><strong>PT3 (0-80):</strong> Periodic Test 3 marks</li>
+            <li><strong>/5:</strong> Best 2 PT scores averaged & scaled to 5</li>
+            <li><strong>Annual (0-80):</strong> Annual exam marks</li>
+            <li><strong>SEA, PF (Multiple Assessment), MA (formerly Portfolio) (0-5):</strong> Co-curricular activities</li>
+            <li><strong>Final:</strong> (/5) + Annual + SEA + Multiple Assessment + MA (shown only when all marks entered)</li>
+            <li><strong>Grade:</strong> Based on final marks with grade points</li>
+            <li><strong>Rank:</strong> Candidate's position by final marks</li>
+            <li><strong>GPA:</strong> Average of grade points across all subjects</li>
+        </ul>
+    </div>
 
-        function createTable() {
-            const body = document.getElementById("tableBody");
-            body.innerHTML = "";
-            candidates.forEach((cand) => {
-                let row = document.createElement("tr");
-                let html = `<td>${cand}</td>`;
-                subjects.forEach((sub) => {
-                    html += `<td><input type="number" min="0" max="40" value="${data[cand][sub].pt1}" title="PT1: Enter value between 0-40" onchange="update('${cand}','${sub}','pt1',this, 40)" oninput="validateInput(this, 40)"></td><td><input type="number" min="0" max="80" value="${data[cand][sub].pt2}" title="PT2: Enter value between 0-80" onchange="update('${cand}','${sub}','pt2',this, 80)" oninput="validateInput(this, 80)"></td><td><input type="number" min="0" max="80" value="${data[cand][sub].pt3}" title="PT3: Enter value between 0-80" onchange="update('${cand}','${sub}','pt3',this, 80)" oninput="validateInput(this, 80)"></td><td class="final"></td>`;
-                });
-                row.innerHTML = html;
-                body.appendChild(row);
-                // After row created → calculate & highlight correctly
-                subjects.forEach((sub, subIndex) => {
-                    let finalCellIndex = 1 + (subIndex * 4) + 3;
-                    let finalCell = row.children[finalCellIndex];
-                    finalCell.innerText = calculate(cand, sub, row);
-                });
-            });
-        }
+    <div class="stats-summary" id="statsSummary"></div>
 
-        function update(cand, sub, type, inputElement, maxVal) {
-            let numVal = parseFloat(inputElement.value);
-            // Validate: must be between 0 and maxVal
-            if (isNaN(numVal) || numVal < 0 || numVal > maxVal) {
-                inputElement.classList.add("error-input");
-                inputElement.title = `Error: Enter value between 0-${maxVal}`;
-                if (isNaN(numVal) || numVal < 0) {
-                    numVal = 0;
-                } else if (numVal > maxVal) {
-                    numVal = maxVal;
+    <div id="adminPanel" class="help-panel" style="display:none;">
+        <h3>Admin Settings</h3>
+        <p>Update subjects and candidates (comma-separated).</p>
+        <div>
+            <label>Subjects:</label><br>
+            <textarea id="adminSubjects" rows="2" style="width:100%;"></textarea>
+        </div>
+        <div>
+            <label>Candidates:</label><br>
+            <textarea id="adminCandidates" rows="2" style="width:100%;"></textarea>
+        </div>
+        <button onclick="applyAdmin()">Save</button>
+        <button onclick="toggleAdmin()">Close</button>
+    </div>
+
+    <button onclick="exportJSON()">📥 Export Backup (Safe)</button>
+    <button onclick="importJSON()">📤 Import Backup</button>
+    <button onclick="exportCSV()">📊 Export CSV</button>
+    <button onclick="importCSV()">📋 Import CSV</button>
+    <button onclick="window.print()">🖨️ Print</button>
+</div>
+
+<br><br>
+
+<div class="table-container">
+<table id="markTable">
+<thead>
+<tr>
+<th rowspan="2">Candidate</th>
+<script>
+let subjects = ["English","Mathematics","Language","Social Science","General Science"];
+subjects.forEach(s =>
+    document.write(`<th colspan="11" class="subject-header">${s}</th>`)
+);
+</script>
+<th rowspan="2">Overall GPA</th>
+</tr>
+
+<tr>
+<script>
+for(let i=0;i<subjects.length;i++){
+    document.write(`
+<th>PT1</th>
+<th>PT2</th>
+<th>PT3</th>
+<th>Best</th>
+<th>Annual</th>
+<th>SEA</th>
+<th>PF</th>
+<th>MA</th>
+<th>Final</th>
+<th>Grade</th>
+<th>Rank</th>
+`);
+}
+</script>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<table id="summaryTable" style="margin-top: 20px;">
+<thead>
+<tr>
+<th>Subject Summary</th>
+<script>
+for(let i=0;i<subjects.length;i++){
+    let sub = subjects[i];
+    document.write(`<th style="background:#f5f5f5">${sub} Avg Annual</th>`);
+}
+    document.write(`<th style="background:#f5f5f5">--</th>`);
+</script>
+</tr>
+</thead>
+<tbody>
+<tr id="summaryRow"></tr>
+</tbody>
+</table>
+</div>
+
+<script>
+
+let candidates = Array.from({length:20},(_,i)=>"Candidate "+(i+1));
+let data={};
+
+function initData(){
+    candidates.forEach(c=>{
+        data[c]={};
+        subjects.forEach(s=>{
+            data[c][s]={
+                pt1:"",pt2:"",pt3:"",
+                annual:"",sea:"",pf:"",portfolio:""
+            };
+        });
+    });
+}
+
+function load(){
+    let saved=localStorage.getItem("class9Data");
+    if(saved){
+        data=JSON.parse(saved);
+
+        // backward compatibility
+        candidates.forEach(c=>{
+            subjects.forEach(s=>{
+                if(data[c][s].annual === undefined){
+                    data[c][s].annual="";
+                    data[c][s].sea="";
+                    data[c][s].pf="";
+                    data[c][s].portfolio="";
                 }
-            } else {
-                inputElement.classList.remove("error-input");
-                inputElement.title = `PT${type === 'pt1' ? '1' : type === 'pt2' ? '2' : '3'}: Enter value between 0-${maxVal}`;
+            });
+        });
+
+    } else initData();
+}
+
+function save(){
+    localStorage.setItem("class9Data",JSON.stringify(data));
+    updateTimestamp();
+}
+
+function updateTimestamp(){
+    let now = new Date();
+    let time = now.toLocaleTimeString('en-IN');
+    document.getElementById("timestamp").innerText = time;
+}
+
+function clamp(type,val){
+    if(type==="pt1") return Math.min(40,Math.max(0,val));
+    if(type==="pt2"||type==="pt3"||type==="annual")
+        return Math.min(80,Math.max(0,val));
+    if(type==="sea"||type==="pf"||type==="portfolio")
+        return Math.min(5,Math.max(0,val));
+    return val;
+}
+
+function update(cand,sub,type,el){
+    let v=parseFloat(el.value);
+
+    if(isNaN(v)){
+        data[cand][sub][type]="";
+    }else{
+        v=clamp(type,v);
+        // apply clamped value back to input
+        el.value=v;
+        data[cand][sub][type]=v;
+    }
+
+    // remove error styling if value is now valid
+    el.classList.remove("error-input");
+    el.title = el.getAttribute('title') || "";
+
+    save();
+    updateRow(el.closest("tr"),cand);
+    updateProgress();
+    updateSummaryRow();
+}
+
+function validateInput(el, maxVal){
+    let v=parseFloat(el.value);
+    if(isNaN(v) || v<0 || v>maxVal){
+        el.classList.add("error-input");
+        el.title = `Error: Enter value between 0-${maxVal}`;
+    } else {
+        el.classList.remove("error-input");
+        // restore a helpful tooltip
+        // try to keep existing title text
+        let base = el.getAttribute('data-base-title') || el.getAttribute('title') || '';
+        el.title = base || el.title;
+    }
+}
+
+function calculatePT(cand, sub, rowElement = null) {
+
+    let raw1 = data[cand][sub].pt1;
+    let raw2 = data[cand][sub].pt2;
+    let raw3 = data[cand][sub].pt3;
+
+    if (!raw1 && !raw2 && !raw3) return "";
+
+    let pt1 = parseFloat(raw1) || 0;
+    let pt2 = parseFloat(raw2) || 0;
+    let pt3 = parseFloat(raw3) || 0;
+
+    let n1 = (pt1 / 40) * 80;
+
+    let exams = [
+        { value: n1, type: "pt1" },
+        { value: pt2, type: "pt2" },
+        { value: pt3, type: "pt3" }
+    ];
+
+    exams.sort((a, b) => b.value - a.value);
+
+    let avg = (exams[0].value + exams[1].value) / 2;
+    // normalize to /5 and round to two decimals
+    let best5 = ((avg / 80) * 5).toFixed(2);
+
+    if (rowElement) {
+        try {
+            let subjectIndex = subjects.indexOf(sub);
+            let tdStart = 1 + (subjectIndex * 11);
+
+            let pt1Input = rowElement.children[tdStart]?.querySelector("input");
+            let pt2Input = rowElement.children[tdStart + 1]?.querySelector("input");
+            let pt3Input = rowElement.children[tdStart + 2]?.querySelector("input");
+
+            if (pt1Input) pt1Input.classList.remove("best");
+            if (pt2Input) pt2Input.classList.remove("best");
+            if (pt3Input) pt3Input.classList.remove("best");
+
+            if(raw1 || raw2 || raw3){
+                exams.slice(0, 2).forEach(exam => {
+                    if (exam.type === "pt1" && pt1Input) pt1Input.classList.add("best");
+                    if (exam.type === "pt2" && pt2Input) pt2Input.classList.add("best");
+                    if (exam.type === "pt3" && pt3Input) pt3Input.classList.add("best");
+                });
             }
-            data[cand][sub][type] = numVal;
+        } catch(e) {
+            console.log("Error highlighting PT scores:", e);
+        }
+    }
+
+    return best5;
+}
+
+function calculateFinal(cand,sub){
+    // Check if all required fields are filled
+    let raw1 = data[cand][sub].pt1;
+    let raw2 = data[cand][sub].pt2;
+    let raw3 = data[cand][sub].pt3;
+    let annual = data[cand][sub].annual;
+    let sea = data[cand][sub].sea;
+    let pf = data[cand][sub].pf;
+    let portfolio = data[cand][sub].portfolio;
+    
+    // Return empty string if any field is empty
+    if (!raw1 || !raw2 || !raw3 || !annual || !sea || !pf || !portfolio) {
+        return "";
+    }
+    
+    // All fields filled, calculate total
+    let best5 = parseFloat(calculatePT(cand,sub)) || 0;
+    let annualVal = parseFloat(annual) || 0;
+    let seaVal = parseFloat(sea) || 0;
+    let pfVal = parseFloat(pf) || 0;
+    let portfolioVal = parseFloat(portfolio) || 0;
+
+    let total = best5 + annualVal + seaVal + pfVal + portfolioVal;
+    return total ? total.toFixed(2) : "";
+}
+
+function grade(m){
+    if(m>=91)return"A1 (10)";
+    if(m>=81)return"A2 (9)";
+    if(m>=71)return"B1 (8)";
+    if(m>=61)return"B2 (7)";
+    if(m>=51)return"C1 (6)";
+    if(m>=41)return"C2 (5)";
+    if(m>=33)return"D (4)";
+    if(m>=21)return"E1 (0)";
+    return"E2 (0)";
+}
+
+function getGradeClass(m){
+    if(m>=91)return"grade-a1";
+    if(m>=81)return"grade-a2";
+    if(m>=71)return"grade-b1";
+    if(m>=61)return"grade-b2";
+    if(m>=51)return"grade-c1";
+    if(m>=41)return"grade-c2";
+    if(m>=33)return"grade-d";
+    if(m>=21)return"grade-e1";
+    return"grade-e2";
+}
+
+function getGradePoint(m){
+    if(m>=91)return 10;
+    if(m>=81)return 9;
+    if(m>=71)return 8;
+    if(m>=61)return 7;
+    if(m>=51)return 6;
+    if(m>=41)return 5;
+    if(m>=33)return 4;
+    return 0;
+}
+
+function calculateGPA(cand){
+    let totalPoints = 0;
+    let count = 0;
+    subjects.forEach(sub => {
+        let finalVal = calculateFinal(cand, sub);
+        if(finalVal){
+            let points = getGradePoint(parseFloat(finalVal));
+            totalPoints += points;
+            count++;
+        }
+    });
+    return count > 0 ? (totalPoints / count).toFixed(2) : "";
+}
+
+function updateRow(row,cand){
+    subjects.forEach((sub,i)=>{
+        let start=1+(i*11);
+
+        let best5=calculatePT(cand,sub,row);
+        if(row.children[start+3]) row.children[start+3].innerText=best5;
+
+        let finalVal=calculateFinal(cand,sub);
+        if(row.children[start+8]) row.children[start+8].innerText=finalVal;
+        
+        let gradeCell = row.children[start+9];
+        if(gradeCell){
+            gradeCell.innerText = finalVal?grade(parseFloat(finalVal)):"";
+            gradeCell.className = finalVal ? getGradeClass(parseFloat(finalVal)) : "";
+        }
+        
+        if(row.children[start+10]) row.children[start+10].innerText = "";
+    });
+    
+    // Update overall GPA
+    let gpaCell = row.children[1 + (subjects.length * 11)];
+    if(gpaCell) gpaCell.innerText = calculateGPA(cand);
+}
+
+function createTable(){
+    const body=document.getElementById("tableBody");
+    body.innerHTML="";
+
+    candidates.forEach(c=>{
+        let row=document.createElement("tr");
+        let html=`<td>${c}</td>`;
+
+        subjects.forEach(s=>{
+            html+=`
+<td><input type="number" step="any" min="0" max="40" title="PT1: 0-40" onchange="update('${c}','${s}','pt1',this)" oninput="validateInput(this,40)" value="${data[c][s].pt1}"></td>
+<td><input type="number" step="any" min="0" max="80" title="PT2: 0-80" onchange="update('${c}','${s}','pt2',this)" oninput="validateInput(this,80)" value="${data[c][s].pt2}"></td>
+<td><input type="number" step="any" min="0" max="80" title="PT3: 0-80" onchange="update('${c}','${s}','pt3',this)" oninput="validateInput(this,80)" value="${data[c][s].pt3}"></td>
+<td></td>
+<td><input type="number" step="any" min="0" max="80" title="Annual: 0-80" onchange="update('${c}','${s}','annual',this)" oninput="validateInput(this,80)" value="${data[c][s].annual}"></td>
+<td><input type="number" step="any" min="0" max="5" title="SEA: 0-5" onchange="update('${c}','${s}','sea',this)" oninput="validateInput(this,5)" value="${data[c][s].sea}"></td>
+<td><input type="number" step="any" min="0" max="5" title="PF: 0-5" onchange="update('${c}','${s}','pf',this)" oninput="validateInput(this,5)" value="${data[c][s].pf}"></td>
+<td><input type="number" step="any" min="0" max="5" title="MA: 0-5" onchange="update('${c}','${s}','portfolio',this)" oninput="validateInput(this,5)" value="${data[c][s].portfolio}"></td>
+<td></td>
+<td></td>
+<td></td>
+`;
+        });
+
+        html += `<td></td>`;
+
+        row.innerHTML=html;
+        body.appendChild(row);
+        updateRow(row,c);
+    });
+
+    // Add ranking and statistics
+    updateRanking();
+    updateStatistics();
+    updateProgress();
+}
+
+function updateRanking(){
+    // compute overall scores for candidates who have at least one final value
+    let list = [];
+    candidates.forEach(c => {
+        let totalFinal = 0;
+        let count = 0;
+        subjects.forEach(s => {
+            let f = calculateFinal(c, s);
+            if(f){
+                totalFinal += parseFloat(f);
+                count++;
+            }
+        });
+        if(count > 0){
+            // average final across subjects they actually have
+            list.push({candidate: c, avg: totalFinal / count});
+        }
+    });
+
+    // sort descending by avg
+    list.sort((a,b)=>b.avg - a.avg);
+
+    // assign ranks sequentially
+    let rankMap = {};
+    list.forEach((r, idx) => {
+        rankMap[r.candidate] = idx + 1;
+    });
+
+    // update table cells: only for subjects where final exists
+    let rows = document.querySelectorAll("#tableBody tr");
+    rows.forEach(row => {
+        let candidate = row.children[0].innerText;
+        subjects.forEach((sub,i) => {
+            let finalVal = calculateFinal(candidate, sub);
+            let rankCellIndex = 1 + (i * 11) + 10;
+            if(finalVal){
+                row.children[rankCellIndex].innerText = rankMap[candidate] || "";
+            } else {
+                row.children[rankCellIndex].innerText = "";
+            }
+        });
+    });
+}
+
+function updateStatistics(){
+    let stats = {};
+    subjects.forEach(s => {
+        let marks = [];
+        candidates.forEach(c => {
+            let f = calculateFinal(c, s);
+            if(f) marks.push(parseFloat(f));
+        });
+        if(marks.length > 0){
+            marks.sort((a,b) => a - b);
+            stats[s] = {
+                high: Math.max(...marks).toFixed(2),
+                low: Math.min(...marks).toFixed(2),
+                avg: (marks.reduce((a,b) => a+b, 0) / marks.length).toFixed(2),
+                median: marks[Math.floor(marks.length/2)].toFixed(2)
+            };
+        }
+    });
+    
+    let html = '<div style="grid-column: 1/-1;"><strong>Class Statistics:</strong></div>';
+    subjects.forEach(s => {
+        if(stats[s]){
+            html += `<div class="stat-box"><span class="stat-label">${s}</span><br>High: ${stats[s].high} | Low: ${stats[s].low} | Avg: ${stats[s].avg} | Median: ${stats[s].median}</div>`;
+        }
+    });
+    document.getElementById("statsSummary").innerHTML = html;
+}
+
+function updateProgress(){
+    let completed = 0;
+    let total = candidates.length * subjects.length;
+    candidates.forEach(c => {
+        subjects.forEach(s => {
+            let raw1 = data[c][s].pt1;
+            let raw2 = data[c][s].pt2;
+            let raw3 = data[c][s].pt3;
+            let annual = data[c][s].annual;
+            let sea = data[c][s].sea;
+            let pf = data[c][s].pf;
+            let portfolio = data[c][s].portfolio;
+            if(raw1 && raw2 && raw3 && annual && sea && pf && portfolio){
+                completed++;
+            }
+        });
+    });
+    let percent = Math.round((completed / total) * 100);
+    document.getElementById("progressFill").style.width = percent + "%";
+    document.getElementById("progressText").innerText = percent + "%";
+}
+
+function toggleHelp(){
+    document.getElementById("helpPanel").classList.toggle("show");
+}
+
+function resetData(){
+    if(confirm("⚠️ Are you sure? This will delete ALL data permanently.\n\nThis action cannot be undone.")){
+        if(confirm("This is your last chance. Press OK to confirm deletion.")){
+            initData();
             save();
             createTable();
+            updateSummaryRow();
+            alert("✅ All data has been reset.");
         }
+    }
+}
 
-        function validateInput(inputElement, maxVal) {
-            let numVal = parseFloat(inputElement.value);
-            if (isNaN(numVal) || numVal < 0 || numVal > maxVal) {
-                inputElement.classList.add("error-input");
-                inputElement.title = `Error: Enter value between 0-${maxVal}`;
-            } else {
-                inputElement.classList.remove("error-input");
+function toggleAdmin(){
+    let panel = document.getElementById('adminPanel');
+    if(panel.style.display === 'none'){
+        panel.style.display = 'block';
+        document.getElementById('adminSubjects').value = subjects.join(', ');
+        document.getElementById('adminCandidates').value = candidates.join(', ');
+    } else {
+        panel.style.display = 'none';
+    }
+}
+
+function applyAdmin(){
+    let newSubs = document.getElementById('adminSubjects').value.split(',').map(s=>s.trim()).filter(s=>s);
+    let newCands = document.getElementById('adminCandidates').value.split(',').map(s=>s.trim()).filter(s=>s);
+    
+    if(newSubs.length === 0 || newCands.length === 0){
+        alert('Subjects and candidates cannot be empty');
+        return;
+    }
+    
+    // rename data for subjects preserving order where possible
+    let oldSubs = [...subjects];
+    subjects = newSubs;
+    
+    candidates = newCands;
+    
+    // rebuild data structure with mapping
+    let newData = {};
+    candidates.forEach(c=>{
+        newData[c] = {};
+        subjects.forEach((s, idx)=>{
+            // find old subject at same position
+            let oldS = oldSubs[idx] || s;
+            newData[c][s] = data[c]?.[oldS] ? data[c][oldS] : {pt1:'',pt2:'',pt3:'',annual:'',sea:'',pf:'',portfolio:''};
+        });
+    });
+    data = newData;
+    save();
+    createTable();
+    updateSummaryRow();
+    toggleAdmin();
+    alert('✅ Admin changes applied');
+}
+
+function exportJSON(){
+    let blob=new Blob([JSON.stringify(data)],{type:"application/json"});
+    let a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="Class9Backup.json";
+    a.click();
+}
+
+function importJSON(){
+    let input=document.createElement("input");
+    input.type="file";
+    input.onchange=e=>{
+        let reader=new FileReader();
+        reader.onload=()=>{
+            data=JSON.parse(reader.result);
+            save();
+            createTable();
+            updateSummaryRow();
+        };
+        reader.readAsText(e.target.files[0]);
+    };
+    input.click();
+}
+
+function exportCSV(){
+    let rows=[];
+    let header=["Candidate"];
+    subjects.forEach(s=>{
+        header.push(s+" PT1",s+" PT2",s+" PT3",s+" /5",s+" Annual",s+" SEA",s+" PF",s+" MA",s+" Final",s+" Grade");
+    });
+    rows.push(header.join(","));
+
+    candidates.forEach(c=>{
+        let row=[c];
+        subjects.forEach(s=>{
+            row.push(
+                data[c][s].pt1,
+                data[c][s].pt2,
+                data[c][s].pt3,
+                calculatePT(c,s),
+                data[c][s].annual,
+                data[c][s].sea,
+                data[c][s].pf,
+                data[c][s].portfolio,
+                calculateFinal(c,s),
+                grade(parseFloat(calculateFinal(c,s)||0))
+            );
+        });
+        rows.push(row.join(","));
+    });
+
+    let blob=new Blob([rows.join("\n")],{type:"text/csv"});
+    let a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="Class9Marks.csv";
+    a.click();
+}
+
+function importCSV(){
+
+    let input = document.createElement("input");
+    input.type = "file";
+
+    input.onchange = e => {
+
+        let reader = new FileReader();
+
+        reader.onload = () => {
+
+            let text = reader.result.trim();
+            let lines = text.replace(/\r/g, "").split("\n");
+
+            if(lines.length < 2){
+                alert("Invalid CSV file.");
+                return;
             }
-        }
 
-        function calculate(cand, sub, rowElement = null) {
-            let raw1 = data[cand][sub].pt1;
-            let raw2 = data[cand][sub].pt2;
-            let raw3 = data[cand][sub].pt3;
-            // If all empty → return blank (NO highlight)
-            if (!raw1 && !raw2 && !raw3) {
-                return "";
-            }
-            let pt1 = parseFloat(raw1) || 0;
-            let pt2 = parseFloat(raw2) || 0;
-            let pt3 = parseFloat(raw3) || 0;
-            let n1 = (pt1 / 40) * 80;
-            let exams = [
-                { value: n1, type: "pt1" },
-                { value: pt2, type: "pt2" },
-                { value: pt3, type: "pt3" }
-            ];
-            exams.sort((a, b) => b.value - a.value);
-            let avg = (exams[0].value + exams[1].value) / 2;
-            let finalVal = ((avg / 80) * 5).toFixed(3);
-            if (rowElement) {
-                let subjectIndex = subjects.indexOf(sub);
-                let tdStart = 1 + (subjectIndex * 4);
-                let pt1Input = rowElement.children[tdStart].querySelector("input");
-                let pt2Input = rowElement.children[tdStart + 1].querySelector("input");
-                let pt3Input = rowElement.children[tdStart + 2].querySelector("input");
-                // Clear highlight
-                pt1Input.classList.remove("best");
-                pt2Input.classList.remove("best");
-                pt3Input.classList.remove("best");
-                // Only highlight if at least one real mark exists
-                if (raw1 || raw2 || raw3) {
-                    exams.slice(0, 2).forEach(exam => {
-                        if (exam.type === "pt1") pt1Input.classList.add("best");
-                        if (exam.type === "pt2") pt2Input.classList.add("best");
-                        if (exam.type === "pt3") pt3Input.classList.add("best");
-                    });
-                }
-            }
-            return finalVal;
-        }
-
-        function save() {
-            localStorage.setItem("class9Data", JSON.stringify(data));
-        }
-
-        function load() {
-            let saved = localStorage.getItem("class9Data");
-            if (saved) {
-                data = JSON.parse(saved);
-            } else {
-                initData();
-            }
-        }
-
-        function exportJSON() {
-            let blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-            let a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "Class9Backup.json";
-            a.click();
-        }
-
-        function importJSON() {
-            let input = document.createElement("input");
-            input.type = "file";
-            input.onchange = e => {
-                let file = e.target.files[0];
-                let reader = new FileReader();
-                reader.onload = () => {
-                    data = JSON.parse(reader.result);
-                    save();
-                    createTable();
-                };
-                reader.readAsText(file);
-            };
-            input.click();
-        }
-
-        function exportCSV() {
-            let rows = [];
-            let header = ["Candidate"];
-            subjects.forEach(s => {
-                header.push(s + " PT1", s + " PT2", s + " PT3", s + " /5");
+            // 🔹 Parse header line
+            let headerLine = lines[0];
+            let headers = headerLine.split(",").map(h => h.trim());
+            
+            // Create column map with original headers first, then normalized
+            let columnMap = {};
+            headers.forEach((colName, index) => {
+                let normalized = colName.toLowerCase().replace(/\s+/g, " ");
+                columnMap[normalized] = index;
             });
-            rows.push(header.join(","));
-            candidates.forEach(c => {
-                let row = [c];
-                subjects.forEach(s => {
-                    row.push(data[c][s].pt1, data[c][s].pt2, data[c][s].pt3, calculate(c, s));
-                });
-                rows.push(row.join(","));
-            });
-            let blob = new Blob([rows.join("\n")], { type: "text/csv" });
-            let a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "Class9Marks.csv";
-            a.click();
-        }
 
-        function importCSV() {
-            let input = document.createElement("input");
-            input.type = "file";
-            input.onchange = e => {
-                let reader = new FileReader();
-                reader.onload = () => {
-                    let lines = reader.result.split("\n");
-                    lines.slice(1).forEach(line => {
-                        let cols = line.split(",");
-                        let cand = cols[0];
-                        if (data[cand]) {
-                            let index = 1;
-                            subjects.forEach(s => {
-                                data[cand][s].pt1 = cols[index++];
-                                data[cand][s].pt2 = cols[index++];
-                                data[cand][s].pt3 = cols[index++];
-                                index++;
-                            });
+            console.log("Column Map:", columnMap);
+            console.log("Headers:", headers);
+
+            let importedCount = 0;
+            let errorLog = [];
+
+            for(let i=1; i<lines.length; i++){
+                let line = lines[i].trim();
+                if(!line) continue;
+
+                let cols = line.split(",");
+                let candName = cols[0]?.trim();
+                
+                if(!candName) continue;
+                
+                // Find matching candidate (exact or case-insensitive)
+                let cand = null;
+                if(data[candName]){
+                    cand = candName;
+                } else {
+                    for(let existingCand of Object.keys(data)){
+                        if(existingCand.toLowerCase() === candName.toLowerCase()){
+                            cand = existingCand;
+                            break;
                         }
-                    });
-                    save();
-                    createTable();
-                };
-                reader.readAsText(e.target.files[0]);
-            };
-            input.click();
-        }
+                    }
+                }
+                
+                if(!cand){
+                    errorLog.push(`Row ${i+1}: Candidate "${candName}" not found`);
+                    continue;
+                }
 
-        load();
-        createTable();
-    </script>
+                // Import data for each subject
+                subjects.forEach(sub => {
+                    let subLower = sub.toLowerCase();
+                    
+                    // Look for PT1, PT2, PT3 columns
+                    let pt1Key = `${subLower} pt1`;
+                    let pt2Key = `${subLower} pt2`;
+                    let pt3Key = `${subLower} pt3`;
+                    
+                    let pt1Val = cols[columnMap[pt1Key]]?.trim() || "";
+                    let pt2Val = cols[columnMap[pt2Key]]?.trim() || "";
+                    let pt3Val = cols[columnMap[pt3Key]]?.trim() || "";
+                    
+                    let annualKey = `${subLower} annual`;
+                    let seaKey = `${subLower} sea`;
+                    let pfKey = `${subLower} pf`;
+                    let portfolioKey = `${subLower} portfolio`;
+                    
+                    let annualVal = cols[columnMap[annualKey]]?.trim() || "";
+                    let seaVal = cols[columnMap[seaKey]]?.trim() || "";
+                    let pfVal = cols[columnMap[pfKey]]?.trim() || "";
+                    // also check multiple assessment header
+                    if(!pfVal){
+                        let maKey = `${subLower} multiple assessment`;
+                        pfVal = cols[columnMap[maKey]]?.trim() || "";
+                    }
+                    let portfolioVal = cols[columnMap[portfolioKey]]?.trim() || "";
+                    // accept MA as alternate portolio header
+                    if(!portfolioVal){
+                        let maKey2 = `${subLower} ma`;
+                        portfolioVal = cols[columnMap[maKey2]]?.trim() || "";
+                    }
+                    
+                    // Set values only if they exist
+                    if(pt1Val) data[cand][sub].pt1 = pt1Val;
+                    if(pt2Val) data[cand][sub].pt2 = pt2Val;
+                    if(pt3Val) data[cand][sub].pt3 = pt3Val;
+                    if(annualVal) data[cand][sub].annual = annualVal;
+                    if(seaVal) data[cand][sub].sea = seaVal;
+                    if(pfVal) data[cand][sub].pf = pfVal;
+                    if(portfolioVal) data[cand][sub].portfolio = portfolioVal;
+                });
+                
+                importedCount++;
+            }
+
+            console.log("Import Count:", importedCount);
+            console.log("Error Log:", errorLog);
+
+            if(importedCount === 0){
+                alert("❌ No data imported. Please check:\n1. First column is 'Candidate'\n2. Columns like 'English PT1', 'English PT2', etc.\n\nDebug: Check browser console (F12)");
+                return;
+            }
+
+            save();
+            createTable();
+            updateSummaryRow();
+            alert(`✅ CSV Imported Successfully!\n${importedCount} candidates imported.`);
+        };
+
+        reader.readAsText(e.target.files[0]);
+    };
+
+    input.click();
+}
+
+function updateSummaryRow(){
+    let row = document.getElementById("summaryRow");
+    let html = `<td><strong>Avg Annual</strong></td>`;
+    
+    subjects.forEach(sub => {
+        let annuals = [];
+        
+        candidates.forEach(c => {
+            let a = parseFloat(data[c][sub].annual) || 0;
+            if(data[c][sub].annual) annuals.push(a);
+        });
+        
+        let avg = annuals.length > 0 ? (annuals.reduce((a,b) => a+b, 0) / annuals.length).toFixed(2) : "—";
+        html += `<td>${avg}</td>`;
+    });
+    
+    html += `<td>--</td>`;
+    row.innerHTML = html;
+}
+
+load();
+createTable();
+updateSummaryRow();
+
+</script>
 </body>
-
-</html> 
+</html>
